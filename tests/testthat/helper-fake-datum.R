@@ -16,7 +16,12 @@ local_fake_datum <- function(version = "v1.3.0", directory = NULL,
   } else {
     dir.create(directory, recursive = TRUE, showWarnings = FALSE)
   }
-  script <- file.path(directory, "fake-datum.R")
+  script_directory <- directory
+  if (.Platform$OS.type == "windows") {
+    script_directory <- tempfile("fake-datum-script-")
+    dir.create(script_directory, recursive = TRUE)
+  }
+  script <- file.path(script_directory, "fake-datum.R")
   write_fake_file(script, c(
     "args <- commandArgs(trailingOnly = TRUE)",
     "version <- Sys.getenv('FAKE_DATUM_VERSION', 'v1.3.0')",

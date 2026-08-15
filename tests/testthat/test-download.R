@@ -56,7 +56,7 @@ test_that("datum_download verifies and installs the selected release", {
   writeBin(charToRaw("release archive"), archive_source)
   checksum_source <- tempfile()
   writeLines(
-    paste(unname(tools::sha256sum(archive_source)), release$asset),
+    paste(sha256_file(archive_source), release$asset),
     checksum_source
   )
   destination <- tempfile("installed-datum-")

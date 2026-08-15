@@ -187,6 +187,10 @@ expected_archive_checksum <- function(path, asset, release, call = NULL) {
   pieces[[which(matches)]][[1L]]
 }
 
+sha256_file <- function(path) {
+  digest::digest(path, algo = "sha256", serialize = FALSE, file = TRUE)
+}
+
 extract_datum_binary <- function(archive, platform, directory, call = NULL) {
   if (platform$extension == "zip") {
     utils::unzip(archive, exdir = directory)
@@ -363,7 +367,7 @@ datum_download <- function(
   }
 
   expected <- expected_archive_checksum(checksums, release$asset, release, call)
-  actual <- unname(tools::sha256sum(archive))
+  actual <- sha256_file(archive)
   if (!identical(tolower(actual), tolower(expected))) {
     abort_download(
       "SHA-256 verification failed for {.file {release$asset}}; the archive was not installed.",

@@ -7,6 +7,11 @@ test_that("raw arguments are passed without shell interpolation", {
   expect_equal(as.character(result$datum_version), "1.3.0")
 })
 
+test_that("process output uses platform-independent newlines", {
+  expect_identical(normalize_process_output("one\r\ntwo\r\n"), "one\ntwo\n")
+  expect_identical(normalize_process_output("one\ntwo\n"), "one\ntwo\n")
+})
+
 test_that("stdin, environment, and working directory are isolated", {
   executable <- local_fake_datum()
   result <- datum_run(c("raw", "stdin"), stdin = "hello\nworld", executable = executable)

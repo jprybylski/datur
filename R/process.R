@@ -24,6 +24,10 @@ merge_process_env <- function(env) {
   inherited
 }
 
+normalize_process_output <- function(output) {
+  gsub("\r\n", "\n", output, fixed = TRUE)
+}
+
 run_process <- function(args, executable, stdin, wd, env, timeout, echo,
                         include_version = TRUE, call = NULL) {
   redaction <- redact_process_inputs(args, env)
@@ -67,8 +71,8 @@ run_process <- function(args, executable, stdin, wd, env, timeout, echo,
     command = executable,
     args = redaction$args,
     status = raw$status,
-    stdout = redact_values(raw$stdout, redaction$secrets),
-    stderr = redact_values(raw$stderr, redaction$secrets),
+    stdout = redact_values(normalize_process_output(raw$stdout), redaction$secrets),
+    stderr = redact_values(normalize_process_output(raw$stderr), redaction$secrets),
     started_at = started_at,
     duration = duration,
     datum_version = version,
