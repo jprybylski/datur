@@ -91,3 +91,17 @@ abort_timeout <- function(timeout, process, call = NULL) {
     .envir = environment()
   )
 }
+
+abort_download <- function(message, url = NULL, version = NULL, asset = NULL,
+                           parent = NULL, call = NULL) {
+  abort_datur(
+    message,
+    "datur_download_error",
+    url = url,
+    version = version,
+    asset = asset,
+    parent = parent,
+    call = call,
+    .envir = parent.frame()
+  )
+}

@@ -46,7 +46,10 @@ local_fake_datum <- function(version = "v1.3.0", directory = NULL,
   rscript <- file.path(R.home("bin"), "Rscript")
   if (.Platform$OS.type == "windows") {
     executable <- file.path(directory, paste0(name, ".bat"))
-    write_fake_file(executable, paste("@", shQuote(rscript), shQuote(script), "%*", sep = ""))
+    write_fake_file(executable, c(
+      "@echo off",
+      paste(shQuote(rscript, type = "cmd"), shQuote(script, type = "cmd"), "%*")
+    ))
   } else {
     executable <- file.path(directory, name)
     write_fake_file(executable, c(

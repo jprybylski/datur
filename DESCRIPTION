@@ -8,8 +8,8 @@ Authors@R:
 Description: Provides a typed interface to the 'datum' command-line
     application for checking data sources for updates. Runs the external
     process safely, parses machine-readable results, and exposes structured R
-    objects for interactive and automated workflows. The 'datum' executable
-    is installed separately.
+    objects for interactive and automated workflows. Can explicitly download
+    platform-appropriate, checksum-verified 'datum' release binaries.
 License: MIT + file LICENSE
 URL: https://github.com/jprybylski/datur,
     https://jprybylski.github.io/datur/
