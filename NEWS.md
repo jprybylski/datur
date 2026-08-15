@@ -1,4 +1,4 @@
-# datur (development version)
+# datur 0.1.1
 
 * Added schema-driven `.data.yaml` helpers: `datum_source()`,
   `datum_dataset_add()`, `datum_dataset_update()`, and `datum_dataset_remove()`.
