@@ -1,3 +1,12 @@
+# datur (development version)
+
+* Added schema-driven `.data.yaml` helpers: `datum_source()`,
+  `datum_dataset_add()`, `datum_dataset_update()`, and `datum_dataset_remove()`.
+* Added typed wrappers for datum's `schema`, `types`, `audit`, and `delete`
+  commands, including interactive confirmation before destructive operations.
+* Added a dedicated `.data.yaml` vignette and grouped all new functions in the
+  pkgdown reference index.
+
 # datur 0.1.0
 
 * Added typed executable discovery, version validation, and low-level process execution.

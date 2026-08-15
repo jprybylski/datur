@@ -69,3 +69,16 @@ validate_concurrency <- function(concurrency, call = NULL) {
   }
   as.integer(concurrency)
 }
+
+validate_ids <- function(ids, argument = "ids", allow_empty = FALSE, call = NULL) {
+  if (!is.character(ids) || anyNA(ids) || any(!nzchar(ids)) ||
+      (!allow_empty && !length(ids))) {
+    abort_input(argument, "Must be a character vector of non-empty identifiers.", call)
+  }
+  if (anyDuplicated(ids)) {
+    abort_input(argument, "Must not contain duplicate identifiers.", call)
+  }
+  ids
+}
+
+datur_is_interactive <- function() interactive()

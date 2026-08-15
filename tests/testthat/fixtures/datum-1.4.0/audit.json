@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {
+      "id": "ready",
+      "status": "ok",
+      "in_config": true,
+      "policy": "fail",
+      "target": "data/ready.csv",
+      "remote_fingerprint": "sha256:remote",
+      "local_sha256": "sha256:local",
+      "checked_at": "2026-08-15T14:30:00Z"
+    },
+    {
+      "id": "old",
+      "status": "orphaned",
+      "in_config": false,
+      "note": "not in .data.yaml"
+    }
+  ]
+}
