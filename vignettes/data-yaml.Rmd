@@ -1,0 +1,154 @@
+---
+title: "Manage .data.yaml from R"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Manage .data.yaml from R}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Datum 1.4.0 exposes the exact configuration schema in its binary, together
+with the required and optional fields for every source handler included in the
+build. `datur` uses that live metadata to make `.data.yaml` edits safer: an edit
+is validated before the original file is replaced, and a failed validation
+leaves it untouched.
+
+The executable is still the source of truth. These helpers require datum 1.4.0
+or newer even though checking existing projects works with older supported
+1.x releases.
+
+## Inspect the installed configuration contract
+
+`datum_schema()` parses the JSON Schema returned by `datum schema`:
+
+```{r schema, eval=FALSE}
+schema <- datum_schema()
+schema$title
+schema$properties$datasets$items$properties$policy$enum
+```
+
+`datum_types()` reports the source handlers available in this particular
+build. That distinction matters because optional build tags can change the
+available handlers.
+
+```{r types, eval=FALSE}
+names(datum_types())
+datum_types(c("http", "file"))
+```
+
+## Construct a source
+
+`datum_source()` checks field names and required values against
+`datum_types()`. It returns an ordinary named list, so you can inspect, store,
+or modify it before adding a dataset.
+
+```{r sources, eval=FALSE}
+primary <- datum_source(
+  "http",
+  url = "https://example.test/rates.csv"
+)
+
+fallback <- datum_source(
+  "file",
+  path = "offline-cache/rates.csv"
+)
+```
+
+Unknown fields, missing required fields, unavailable source types, and empty
+values fail before `.data.yaml` is touched.
+
+## Add datasets
+
+Use `source` for one source or `sources` for ordered fallback. If the config
+does not exist, `datum_dataset_add()` starts a version 1 document. Paths are
+interpreted by datum relative to the project working directory, so pass the
+same `wd` you use for checks when working outside the current R directory.
+
+```{r add, eval=FALSE}
+project <- "/analysis/exchange-model"
+
+datum_dataset_add(
+  id = "exchange_rates",
+  desc = "Daily exchange rates",
+  target = "data/rates.csv",
+  sources = list(primary, fallback),
+  policy = "update",
+  wd = project
+)
+```
+
+The full resulting document—not only the new dataset—is checked against the
+installed schema and the available source types. Existing defaults and other
+datasets are retained.
+
+## Update datasets
+
+Only arguments you supply are changed. Supplying `source` replaces an existing
+`sources` list, and supplying `sources` replaces `source`. Use `policy = NULL`
+to remove a dataset-level override and fall back to the config default.
+
+```{r update, eval=FALSE}
+datum_dataset_update(
+  "exchange_rates",
+  desc = "Rates with an offline fallback",
+  policy = NULL,
+  wd = project
+)
+
+datum_dataset_update(
+  "exchange_rates",
+  source = primary,
+  wd = project
+)
+```
+
+Dataset identifiers are immutable in this API. Remove and re-add a definition
+when an identifier itself must change, then decide how its old lock entry
+should be handled.
+
+## Audit and remove datasets
+
+`datum_audit()` combines config and lockfile state without contacting any data
+source. Its records distinguish configured and pinned datasets from pending,
+deleted, and orphaned entries.
+
+```{r audit, eval=FALSE}
+audit <- datum_audit(wd = project)
+as.data.frame(audit)
+
+subset(as.data.frame(audit), status != "ok")
+```
+
+`datum_dataset_remove()` removes a definition from `.data.yaml`. In an
+interactive R session it asks whether the tracked local files should also be
+deleted. In a script, state the choice explicitly:
+
+```{r remove, eval=FALSE}
+# Keep the downloaded file.
+datum_dataset_remove("exchange_rates", delete = FALSE, wd = project)
+
+# First run datum delete, then remove the YAML definition.
+datum_dataset_remove("exchange_rates", delete = TRUE, wd = project)
+```
+
+Deletion happens first because datum needs the still-present definition to
+locate the target. It marks the lock entry deleted; after removing the config
+definition, `datum_audit()` can still show that historical entry. Use datum's
+low-level `unlock` command through `datum_run()` if you deliberately want to
+forget it completely.
+
+To delete local files while keeping the dataset definition, call
+`datum_delete()` directly. It asks for confirmation in an interactive session;
+automation must opt in with `yes = TRUE`.
+
+```{r delete, eval=FALSE}
+datum_delete("exchange_rates", wd = project)
+datum_delete(c("large_one", "large_two"), yes = TRUE, wd = project)
+```
+
+Datum then skips deleted datasets until its `undelete` command is run. The
+`.data.yaml` file itself is never changed by `datum_delete()`.

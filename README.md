@@ -74,6 +74,17 @@ result <- datum_check(quiet = TRUE)
 print(result)
 ```
 
+On datum 1.4.0 or newer, `datur` can also build and safely edit `.data.yaml`
+from R using the schema and source requirements embedded in your installed
+binary:
+
+``` r
+http_source <- datum_source("http", url = "https://example.com/data.csv")
+datum_dataset_add("example", "Example data", "data/example.csv", http_source)
+datum_dataset_update("example", policy = "update")
+datum_audit()
+```
+
 ``` text
 datum check: no changes across 8 targets (1.1s)
 ```

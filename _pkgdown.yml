@@ -25,6 +25,18 @@ news:
   cran_dates: false
 
 reference:
+  - title: Manage .data.yaml
+    contents:
+      - datum_source
+      - datum_dataset_add
+      - datum_dataset_update
+      - datum_dataset_remove
+      - datum_schema
+      - datum_types
+  - title: Manage tracked data
+    contents:
+      - datum_audit
+      - datum_delete
   - title: Check for data updates
     contents:
       - datum_check
@@ -40,3 +52,10 @@ reference:
   - title: Package
     contents:
       - datur-package
+
+articles:
+  - title: Workflows
+    navbar: ~
+    contents:
+      - datur
+      - data-yaml

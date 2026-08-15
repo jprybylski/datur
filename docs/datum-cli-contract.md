@@ -1,7 +1,7 @@
 # `datum` CLI contract for `datur`
 
 **Status:** Phase 0 complete  
-**Reviewed CLI release:** `datum` 1.3.0 (`v1.3.0`)  
+**Reviewed CLI release:** `datum` 1.4.0 (`v1.4.0`)
 **Oldest supported CLI release:** `datum` 1.2.1  
 **Protocol designation in `datur`:** implicit JSON protocol v1
 
@@ -13,7 +13,7 @@ release version linker flag.
 ## Compatibility decision
 
 `datum` added machine-readable output in 1.2.1 and is currently released as
-1.3.0. The JSON document does not contain a separate `schema_version` field, so
+1.4.0. The JSON document does not contain a separate `schema_version` field, so
 `datur` will treat the CLI release version as the protocol compatibility gate:
 
 - reject `datum` versions older than 1.2.1;
@@ -66,6 +66,32 @@ directory.
 
 `datum_run()` may execute arbitrary argument vectors. Its contract is the raw
 CLI contract and is intentionally less stable than `datum_check()`.
+
+### Configuration metadata (datum 1.4.0+)
+
+```text
+datum schema
+datum --json --no-color types [TYPE ...]
+```
+
+`schema` emits the exact embedded draft-07 JSON Schema for `.data.yaml`.
+`types` emits `{"types": [...]}`; each type has `type`, `description`, and a
+`fields` array whose entries contain `name`, `required`, and `description`.
+`datur` uses both documents when constructing and validating configuration
+edits. These commands require datum 1.4.0 but do not raise the package-wide
+minimum needed by older APIs.
+
+### Audit and deletion (datum 1.3.0+)
+
+```text
+datum --json --no-color [--config PATH] [--lock PATH] audit
+datum --no-color [--config PATH] [--lock PATH] --yes delete ID [ID ...]
+```
+
+Audit is read-only and emits an `entries` array with `ok`, `pending`, `deleted`,
+or `orphaned` state. Delete removes tracked local files and marks lockfile
+entries deleted; `datur` performs confirmation in R and always passes `--yes`
+to keep the subprocess non-interactive.
 
 ### Help discovery
 
@@ -246,4 +272,3 @@ Sanitized fixtures live in
 from the `v1.3.0` tag with `-ldflags '-X main.version=v1.3.0'`, using only local
 file sources and synthetic paths. No credentials or machine-specific workspace
 paths are present.
-
