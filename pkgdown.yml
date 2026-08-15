@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  datur: datur.html
+last_built: 2026-08-15T18:37Z
+urls:
+  reference: https://jprybylski.github.io/datur/reference
+  article: https://jprybylski.github.io/datur/articles
