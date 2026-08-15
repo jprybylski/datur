@@ -10,7 +10,7 @@ output:
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-# datur
+# datur <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 `datur` is a safe, typed R interface to
 [`datum`](https://github.com/jprybylski/datum), the command-line data update

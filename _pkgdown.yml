@@ -1,0 +1,42 @@
+url: https://jprybylski.github.io/datur/
+
+title: datur
+
+# `docs/` contains source documentation in this repository, so keep generated
+# site files in a separate, ignored directory.
+destination: pkgdown-site
+
+template:
+  bootstrap: 5
+
+home:
+  title: datur
+  description: >-
+    A safe, typed R interface to the datum command-line data update checker.
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+news:
+  # Releases are GitHub-only, so CRAN publication-date lookups add latency
+  # without providing useful metadata.
+  cran_dates: false
+
+reference:
+  - title: Check for data updates
+    contents:
+      - datum_check
+      - datum_available
+      - datum_version
+  - title: Install and configure datum
+    contents:
+      - datum_download
+      - datum_path
+  - title: Low-level execution
+    contents:
+      - datum_run
+  - title: Package
+    contents:
+      - datur-package

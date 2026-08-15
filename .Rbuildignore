@@ -1,6 +1,12 @@
 ^datur-package-spec\.md$
 ^README\.Rmd$
 ^\.github$
+^_pkgdown\.yml$
+^pkgdown$
+^pkgdown-site$
+^logo-files$
+^VERSION$
+^changelog\.md$
 ^cran-comments\.md$
 ^datur_[0-9.]+\.tar\.gz$
 ^datur\.Rcheck$

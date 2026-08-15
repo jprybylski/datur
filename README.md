@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file. -->
 
-# datur
+# datur <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 `datur` is a safe, typed R interface to
 [`datum`](https://github.com/jprybylski/datum), the command-line data

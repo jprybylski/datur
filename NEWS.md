@@ -1,4 +1,4 @@
-# datur 0.1.0
+# datur (development version)
 
 * Added typed executable discovery, version validation, and low-level process execution.
 * Added the high-level `datum_check()` API and stable S3 result objects.
