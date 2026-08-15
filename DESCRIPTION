@@ -1,0 +1,35 @@
+Package: datur
+Title: Interface to the 'datum' Data Update Checker
+Version: 0.1.0
+Authors@R:
+    person("John", "Prybylski", , "jprybylski@gmail.com",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0001-5802-0539"))
+Description: Provides a typed interface to the 'datum' command-line
+    application for checking data sources for updates. Runs the external
+    process safely, parses machine-readable results, and exposes structured R
+    objects for interactive and automated workflows. The 'datum' executable
+    is installed separately.
+License: MIT + file LICENSE
+URL: https://github.com/jprybylski/datur,
+    https://jprybylski.github.io/datur/
+BugReports: https://github.com/jprybylski/datur/issues
+SystemRequirements: datum (>= 1.2.1)
+Depends:
+    R (>= 4.1.0)
+Imports:
+    cli,
+    jsonlite,
+    processx
+Suggests:
+    covr,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    withr
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Language: en-US
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0

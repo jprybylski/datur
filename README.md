@@ -1,0 +1,118 @@
+---
+output: github_document
+always_allow_html: true
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file. -->
+
+
+
+# datur
+
+`datur` is a safe, typed R interface to
+[`datum`](https://github.com/jprybylski/datum), the command-line data update
+checker. It executes `datum` directly without shell interpolation, validates its
+JSON protocol, and returns stable R objects for interactive work and automation.
+
+## Installation
+
+Install `datum` 1.2.1 or newer separately, then install the development version
+of `datur`:
+
+```r
+# install.packages("pak")
+pak::pak("jprybylski/datur")
+```
+
+Configure a nonstandard executable location with any of:
+
+```r
+datum_path(executable = "/opt/datum/bin/datum")
+options(datur.datum_path = "/opt/datum/bin/datum")
+Sys.setenv(DATUM_PATH = "/opt/datum/bin/datum")
+```
+
+## First check
+
+With `.data.yaml` and `.data.lock.yaml` in the working directory:
+
+```r
+library(datur)
+
+datum_available()
+datum_version()
+
+result <- datum_check(quiet = TRUE)
+print(result)
+```
+
+```text
+datum check: no changes across 8 targets (1.1s)
+```
+
+Changed data is represented as data, including when `datum` uses exit status 1
+for a `fail` policy:
+
+```r
+result$changed
+result$status
+as.data.frame(result)
+```
+
+```text
+[1] TRUE
+[1] "changed"
+```
+
+Each data-frame row represents one configured datum dataset. The normalized
+columns are `id`, `status`, `message`, `lock_fingerprint`,
+`remote_fingerprint`, and a list-column of fallback `warnings`.
+
+## Automation
+
+```r
+result <- datum_check(quiet = TRUE)
+
+if (result$changed) {
+  changed <- subset(as.data.frame(result), status %in% c("updated", "stale", "fail"))
+  message("Rebuild required for: ", paste(changed$id, collapse = ", "))
+}
+```
+
+Partial failures preserve usable results in a typed condition:
+
+```r
+tryCatch(
+  datum_check(quiet = TRUE),
+  datur_cli_error = function(error) {
+    if (!is.null(error$result)) {
+      print(error$result)
+    }
+    stop(error)
+  }
+)
+```
+
+## Low-level execution
+
+Use `datum_run()` when you intentionally need raw CLI arguments:
+
+```r
+process <- datum_run(c("--version"), error_on_status = FALSE)
+process$status
+process$stdout
+```
+
+Arguments remain separate process tokens and never pass through a shell.
+Sensitive argument and environment values are redacted from public process
+metadata and captured output.
+
+## Important behavior
+
+`datum check` always updates lockfile timestamps. A dataset using the `update`
+policy may also fetch and replace target files. `datur` does not modify datum
+configuration, install executables, or change the R working directory.
+
+See `vignette("datur", package = "datur")` for a complete, output-rich workflow
+and `docs/datum-cli-contract.md` for the reviewed CLI boundary.
+

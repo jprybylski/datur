@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "id": "local_config",
+      "status": "fail",
+      "lock_fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "remote_fingerprint": "sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af"
+    }
+  ]
+}
+

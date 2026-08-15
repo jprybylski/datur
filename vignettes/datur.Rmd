@@ -1,0 +1,341 @@
+---
+title: "A Complete datum Workflow from R"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{A Complete datum Workflow from R}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+`datur` is deliberately a thin integration layer. `datum` owns source access,
+fingerprinting, policies, and lockfile updates; `datur` owns safe process
+execution, protocol validation, typed conditions, and convenient R objects.
+
+This vignette is self-contained during package checks: commands requiring the
+external executable are not evaluated while knitting. Output labelled **datum
+1.3.0 output** was captured verbatim from a release-tag build using local file
+sources. No network requests or credentials were involved.
+
+## 1. Discover and validate the executable
+
+```{r discovery, eval=FALSE}
+library(datur)
+
+datum_available()
+#> [1] TRUE
+
+datum_path()
+#> [1] "/usr/local/bin/datum"
+
+datum_version()
+#> [1] '1.3.0'
+```
+
+Discovery precedence is explicit and deterministic:
+
+1. `executable =` on the function call;
+2. `options(datur.datum_path = ...)`;
+3. `DATUM_PATH`;
+4. `Sys.which("datum")`.
+
+Automatic `PATH` discovery and successful version parsing are cached. Use
+`datum_path(refresh = TRUE)` or `datum_version(refresh = TRUE)` after replacing
+the executable in a long-running R session.
+
+## 2. Configure a feature-rich datum project
+
+The following configuration demonstrates strict checks, automatic updates,
+monitoring, and source fallback. It is a datum file, not an R-specific format.
+
+```yaml
+version: 1
+
+defaults:
+  policy: fail
+  algo: sha256
+
+datasets:
+  - id: customer_reference
+    desc: Versioned customer reference data
+    source:
+      type: file
+      path: upstream/customers.csv
+    target: data/customers.csv
+    policy: fail
+
+  - id: exchange_rates
+    desc: Rates refreshed automatically
+    sources:
+      - type: http
+        url: https://primary.example.test/rates.csv
+      - type: file
+        path: offline-cache/rates.csv
+    target: data/rates.csv
+    policy: update
+
+  - id: model_license
+    desc: Monitor a file from a Git repository
+    source:
+      type: git
+      url: https://github.com/example/model.git
+      ref: main
+      path: LICENSE
+    target: vendor/model-LICENSE
+    policy: log
+```
+
+Relative config, lock, source, and target paths are resolved from the child
+working directory. Set that directory without touching R's global working
+directory:
+
+```{r isolated-working-directory, eval=FALSE}
+project <- "/analysis/customer-model"
+
+result <- datum_check(
+  config = ".data.yaml",
+  lock = ".data.lock.yaml",
+  wd = project,
+  timeout = 120,
+  concurrency = 1,
+  quiet = TRUE
+)
+
+stopifnot(identical(getwd(), original_r_working_directory))
+```
+
+Concurrency defaults to one because datum 1.x documents a race when datasets
+sharing a target directory are fetched concurrently.
+
+## 3. Understand the actual JSON boundary
+
+`datur` invokes flags before the subcommand:
+
+```text
+datum --json --no-color --timeout 120s --concurrency 1 check
+```
+
+For one unchanged local-file target, datum 1.3.0 emitted:
+
+```json
+{
+  "results": [
+    {
+      "id": "local_config",
+      "status": "ok",
+      "lock_fingerprint": "sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af",
+      "remote_fingerprint": "sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af"
+    }
+  ]
+}
+```
+
+The process exited 0. In R, the normalized object prints concisely:
+
+```{r print-unchanged, eval=FALSE}
+print(result)
+#> datum check: no changes across 1 target (8ms)
+
+result$changed
+#> [1] FALSE
+
+result$status
+#> [1] "unchanged"
+```
+
+The complete machine document remains available as `result$raw`, while
+documented normalized fields remain stable if datum adds JSON fields later.
+
+## 4. Treat changed data as data
+
+After replacing the recorded fingerprint with a synthetic older value, a
+`fail`-policy check produced this **datum 1.3.0 output** and exit status 1:
+
+```json
+{
+  "results": [
+    {
+      "id": "local_config",
+      "status": "fail",
+      "lock_fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "remote_fingerprint": "sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af"
+    }
+  ]
+}
+```
+
+That exit code is not an R error because the JSON status proves this is a
+detected change:
+
+```{r inspect-change, eval=FALSE}
+result <- datum_check(wd = project, quiet = TRUE)
+print(result)
+#> datum check: 1 change across 1 target (8ms)
+#> fail local_config
+
+result$changed
+#> [1] TRUE
+
+result$process$status
+#> [1] 1
+
+as.data.frame(result)[, c("id", "status", "lock_fingerprint", "remote_fingerprint")]
+#>             id status                                                  lock_fingerprint
+#> 1 local_config   fail sha256:0000000000000000000000000000000000000000000000000000000000000000
+#>                                                  remote_fingerprint
+#> 1 sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af
+```
+
+The same change under `log` has status `stale` and process status 0. Under
+`update`, status `updated` and process status 0 mean datum fetched the target and
+updated its lock record. All three statuses set `result$changed` to `TRUE`.
+
+## 5. Build an incremental pipeline
+
+```{r pipeline, eval=FALSE}
+result <- datum_check(wd = project, quiet = TRUE)
+records <- as.data.frame(result)
+
+changed <- records$status %in% c("updated", "stale", "fail")
+changed_ids <- records$id[changed]
+
+if ("customer_reference" %in% changed_ids) {
+  source("R/rebuild-customer-features.R")
+}
+
+if ("exchange_rates" %in% changed_ids) {
+  rmarkdown::render("reports/exposure.Rmd")
+}
+
+saveRDS(
+  list(
+    checked_at = result$checked_at,
+    datum_version = as.character(result$datum_version),
+    records = records
+  ),
+  "artifacts/data-check.rds"
+)
+```
+
+Useful stable fields include:
+
+- `changed`: one non-missing logical value;
+- `status`: `unchanged`, `changed`, `partial_failure`, or `error`;
+- `summary`: named counts for total, changed, unchanged, failed, and skipped;
+- `records`: one base data-frame row per datum dataset;
+- `checked_at` and numeric `duration` in seconds;
+- `datum_version` and implicit `schema_version` 1;
+- `process`: redacted command metadata and captured streams.
+
+## 6. Preserve partial results when a source fails
+
+Datum continues across datasets. A local test with one available and one missing
+source emitted the following document and exited 1:
+
+```json
+{
+  "results": [
+    {
+      "id": "available",
+      "status": "ok",
+      "lock_fingerprint": "sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af",
+      "remote_fingerprint": "sha256:ece015bd6bc8299cc3085ffd5848a841a9c7faf2912ec05176f10bda2f81e2af"
+    },
+    {
+      "id": "unavailable",
+      "status": "error",
+      "message": "fingerprint: stat missing-source.json: no such file or directory"
+    }
+  ]
+}
+```
+
+`datur` raises `datur_cli_error`, but attaches the normalized partial result:
+
+```{r partial-failure, eval=FALSE}
+result <- tryCatch(
+  datum_check(wd = project, quiet = TRUE),
+  datur_cli_error = function(error) {
+    if (is.null(error$result)) stop(error)
+    message(conditionMessage(error))
+    error$result
+  }
+)
+
+result$status
+#> [1] "partial_failure"
+
+subset(as.data.frame(result), status == "error", c("id", "message"))
+#>            id                                                   message
+#> 2 unavailable fingerprint: stat missing-source.json: no such file or directory
+```
+
+This supports a deliberate policy: use successful records, alert on failures,
+and decide whether the surrounding pipeline should stop.
+
+## 7. Respond to typed conditions
+
+All package errors inherit from `datur_error` and a specific subclass:
+
+```{r conditions, eval=FALSE}
+tryCatch(
+  datum_check(wd = project, timeout = 30, quiet = TRUE),
+  datur_not_found = function(error) {
+    message("Install datum or configure DATUM_PATH")
+  },
+  datur_timeout = function(error) {
+    message("Timed out after ", error$timeout, " seconds")
+    print(error$partial_result)
+  },
+  datur_protocol_error = function(error) {
+    message("Unsupported or malformed datum JSON")
+    print(error$process)
+  },
+  datur_cli_error = function(error) {
+    message("datum operational failure: ", conditionMessage(error))
+  }
+)
+```
+
+A change alone never raises a warning or error. Operational source failures,
+lock write failures, malformed JSON, incompatible versions, and R input errors
+remain distinguishable.
+
+## 8. Use the low-level escape hatch intentionally
+
+```{r low-level, eval=FALSE}
+process <- datum_run(
+  args = c("--json", "audit"),
+  wd = project,
+  timeout = 30,
+  error_on_status = FALSE
+)
+
+print(process)
+#> datum: status 0 (18ms)
+
+audit <- jsonlite::fromJSON(process$stdout)
+audit$entries
+```
+
+`datum_run()` sends each `args` element directly to the executable. It does not
+construct a shell command. Named `env` values augment the inherited environment,
+and character or raw `stdin` is supplied through a private temporary file.
+
+## 9. Know the side effects and security boundary
+
+Even though its name is `check`, datum always rewrites lockfile timestamps. An
+`update` policy may fetch and replace targets, and source handlers may use the
+network or datum's git cache. Run checks in a project where those effects are
+expected.
+
+Do not put credentials directly in URLs or command output. `datur` redacts
+sensitive argument values, sensitive environment values, and URL user info from
+public process results, but the safest design is still to keep secrets in the
+credential mechanisms datum documents.
+
+For the exact reviewed boundary, including statuses and exit-code ambiguities,
+see `docs/datum-cli-contract.md` in the source repository.
