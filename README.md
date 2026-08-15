@@ -3,6 +3,13 @@
 
 # datur <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/jprybylski/datur/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/jprybylski/datur/actions/workflows/R-CMD-check.yaml)
+[![Codecov test
+coverage](https://codecov.io/gh/jprybylski/datur/graph/badge.svg)](https://app.codecov.io/gh/jprybylski/datur)
+<!-- badges: end -->
+
 `datur` is a safe, typed R interface to
 [`datum`](https://github.com/jprybylski/datum), the command-line data
 update checker. It executes `datum` directly without shell
