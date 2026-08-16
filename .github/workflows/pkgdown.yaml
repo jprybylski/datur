@@ -41,9 +41,25 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      - name: Install latest datum release
+        run: |
+          destination <- file.path(Sys.getenv("RUNNER_TEMP"), "datum")
+          download <- datur::datum_download(
+            destination = destination,
+            overwrite = TRUE
+          )
+          if (!download$downloaded) {
+            stop("The latest datum release could not be downloaded")
+          }
+          cat(paste0("DATUM_PATH=", download$path, "\n"),
+              file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+        shell: Rscript {0}
+
       - name: Build site
         run: pkgdown::build_site_github_pages(dest_dir = "pkgdown-site", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
+        env:
+          DATUR_BUILD_LIVE_VIGNETTES: "true"
 
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request'

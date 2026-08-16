@@ -8,24 +8,37 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+live <- identical(Sys.getenv("DATUR_BUILD_LIVE_VIGNETTES"), "true")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = live)
+
+if (live) {
+  library(datur)
+  stopifnot(datum_available())
+  project <- tempfile("datur-data-yaml-")
+  dir.create(file.path(project, "upstream"), recursive = TRUE)
+  writeLines(
+    sprintf("date,rate\n%s,1", Sys.Date()),
+    file.path(project, "upstream", "rates.csv")
+  )
+  writeLines("id,value\n1,retained", file.path(project, "upstream", "retained.csv"))
+}
 ```
 
-Datum 1.4.0 exposes the exact configuration schema in its binary, together
-with the required and optional fields for every source handler included in the
-build. `datur` uses that live metadata to make `.data.yaml` edits safer: an edit
-is validated before the original file is replaced, and a failed validation
-leaves it untouched.
+Current `datum` releases expose the exact configuration schema in the binary,
+together with the required and optional fields for every source handler
+included in the build. `datur` uses that live metadata to make `.data.yaml`
+edits safer: an edit is validated before the original file is replaced, and a
+failed validation leaves it untouched.
 
-The executable is still the source of truth. These helpers require datum 1.4.0
-or newer even though checking existing projects works with older supported
-1.x releases.
+The executable is still the source of truth. These helpers verify that the
+installed release supports configuration metadata, even though checking
+existing projects also works with older supported releases.
 
 ## Inspect the installed configuration contract
 
 `datum_schema()` parses the JSON Schema returned by `datum schema`:
 
-```{r schema, eval=FALSE}
+```{r schema}
 schema <- datum_schema()
 schema$title
 schema$properties$datasets$items$properties$policy$enum
@@ -35,7 +48,7 @@ schema$properties$datasets$items$properties$policy$enum
 build. That distinction matters because optional build tags can change the
 available handlers.
 
-```{r types, eval=FALSE}
+```{r types}
 names(datum_types())
 datum_types(c("http", "file"))
 ```
@@ -46,10 +59,10 @@ datum_types(c("http", "file"))
 `datum_types()`. It returns an ordinary named list, so you can inspect, store,
 or modify it before adding a dataset.
 
-```{r sources, eval=FALSE}
+```{r sources}
 primary <- datum_source(
-  "http",
-  url = "https://example.test/rates.csv"
+  "file",
+  path = "upstream/rates.csv"
 )
 
 fallback <- datum_source(
@@ -68,14 +81,21 @@ does not exist, `datum_dataset_add()` starts a version 1 document. Paths are
 interpreted by datum relative to the project working directory, so pass the
 same `wd` you use for checks when working outside the current R directory.
 
-```{r add, eval=FALSE}
-project <- "/analysis/exchange-model"
-
+```{r add}
 datum_dataset_add(
   id = "exchange_rates",
   desc = "Daily exchange rates",
   target = "data/rates.csv",
   sources = list(primary, fallback),
+  policy = "update",
+  wd = project
+)
+
+datum_dataset_add(
+  id = "retained_data",
+  desc = "A second local dataset",
+  target = "data/retained.csv",
+  source = datum_source("file", path = "upstream/retained.csv"),
   policy = "update",
   wd = project
 )
@@ -91,7 +111,7 @@ Only arguments you supply are changed. Supplying `source` replaces an existing
 `sources` list, and supplying `sources` replaces `source`. Use `policy = NULL`
 to remove a dataset-level override and fall back to the config default.
 
-```{r update, eval=FALSE}
+```{r update}
 datum_dataset_update(
   "exchange_rates",
   desc = "Rates with an offline fallback",
@@ -116,7 +136,7 @@ should be handled.
 source. Its records distinguish configured and pinned datasets from pending,
 deleted, and orphaned entries.
 
-```{r audit, eval=FALSE}
+```{r audit}
 audit <- datum_audit(wd = project)
 as.data.frame(audit)
 
@@ -127,13 +147,13 @@ subset(as.data.frame(audit), status != "ok")
 interactive R session it asks whether the tracked local files should also be
 deleted. In a script, state the choice explicitly:
 
-```{r remove, eval=FALSE}
+```{r remove}
 # Keep the downloaded file.
 datum_dataset_remove("exchange_rates", delete = FALSE, wd = project)
-
-# First run datum delete, then remove the YAML definition.
-datum_dataset_remove("exchange_rates", delete = TRUE, wd = project)
 ```
+
+Pass `delete = TRUE` instead to run `datum delete` before removing the YAML
+definition.
 
 Deletion happens first because datum needs the still-present definition to
 locate the target. It marks the lock entry deleted; after removing the config
@@ -145,9 +165,18 @@ To delete local files while keeping the dataset definition, call
 `datum_delete()` directly. It asks for confirmation in an interactive session;
 automation must opt in with `yes = TRUE`.
 
-```{r delete, eval=FALSE}
-datum_delete("exchange_rates", wd = project)
-datum_delete(c("large_one", "large_two"), yes = TRUE, wd = project)
+```{r prepare-delete, include=FALSE}
+writeLines("id,value\n1,cached", file.path(project, "upstream", "cached.csv"))
+datum_dataset_add(
+  "cached_data", "Cached local data", "data/cached.csv",
+  datum_source("file", path = "upstream/cached.csv"),
+  policy = "update", wd = project
+)
+datum_check(wd = project, quiet = TRUE)
+```
+
+```{r delete}
+datum_delete("cached_data", yes = TRUE, wd = project)
 ```
 
 Datum then skips deleted datasets until its `undelete` command is run. The
