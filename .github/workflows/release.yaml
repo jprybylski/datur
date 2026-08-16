@@ -18,6 +18,7 @@ on:
 name: release.yaml
 
 permissions:
+  actions: write
   contents: write
 
 concurrency:
@@ -93,3 +94,13 @@ jobs:
           git push origin "${{ steps.sync.outputs.tag }}" --force
           gh release edit "${{ steps.sync.outputs.tag }}" --notes-file changelog.md
           gh release upload "${{ steps.sync.outputs.tag }}" "${{ steps.sync.outputs.tarball }}" --clobber
+
+      # A metadata commit pushed with GITHUB_TOKEN does not start another
+      # workflow. Dispatch pkgdown explicitly and pin it to the synchronized
+      # commit so the deployed version and NEWS always match the release.
+      - name: Build and deploy synchronized pkgdown site
+        if: env.DRY_RUN != 'true'
+        run: |
+          gh workflow run pkgdown.yaml \
+            --ref main \
+            -f site_ref="$(git rev-parse HEAD)"
