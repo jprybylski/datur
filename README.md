@@ -35,12 +35,12 @@ if (download$downloaded) {
 }
 ```
 
-Request a specific release or destination when reproducibility requires
-it:
+Reuse the resolved release and pin the destination when reproducibility
+requires it:
 
 ``` r
 datum_download(
-  version = "1.3.0",
+  version = download$version,
   destination = "~/bin/datum",
   overwrite = TRUE
 )
@@ -51,8 +51,8 @@ before installation. If GitHub times out, `datum_download()` prints and
 returns the appropriate manual release link and expected asset name
 instead of failing.
 
-You may also install `datum` 1.2.1 or newer separately. Configure a
-nonstandard executable location with any of:
+You may also install any supported `datum` release separately. Configure
+a nonstandard executable location with any of:
 
 ``` r
 datum_path(executable = "/opt/datum/bin/datum")
@@ -74,19 +74,15 @@ result <- datum_check(quiet = TRUE)
 print(result)
 ```
 
-On datum 1.4.0 or newer, `datur` can also build and safely edit `.data.yaml`
-from R using the schema and source requirements embedded in your installed
-binary:
+With a compatible installed `datum`, `datur` can also build and safely
+edit `.data.yaml` from R using the schema and source requirements
+embedded in that binary:
 
 ``` r
 http_source <- datum_source("http", url = "https://example.com/data.csv")
 datum_dataset_add("example", "Example data", "data/example.csv", http_source)
 datum_dataset_update("example", policy = "update")
 datum_audit()
-```
-
-``` text
-datum check: no changes across 8 targets (1.1s)
 ```
 
 Changed data is represented as data, including when `datum` uses exit
@@ -96,11 +92,6 @@ status 1 for a `fail` policy:
 result$changed
 result$status
 as.data.frame(result)
-```
-
-``` text
-[1] TRUE
-[1] "changed"
 ```
 
 Each data-frame row represents one configured datum dataset. The
