@@ -53,6 +53,63 @@ names(datum_types())
 datum_types(c("http", "file"))
 ```
 
+## Keep secrets outside `.data.yaml` (datum 1.5.0+)
+
+Starting with `datum` 1.5.0, any YAML string value can contain a `${NAME}`
+environment reference. `datum` expands it after parsing the YAML and before
+validating or using the configuration. The placeholder can therefore be
+written with `datur` just like any other source or target value:
+
+```{r secret-source, eval=FALSE}
+private_api <- datum_source(
+  "http",
+  url = "https://api.example.com/export?token=${API_TOKEN}"
+)
+
+datum_dataset_add(
+  id = "private_export",
+  desc = "Authenticated API export",
+  target = "${DATA_DIR}/private.csv",
+  source = private_api,
+  policy = "update"
+)
+```
+
+Supply the variables through the environment inherited by `datum`. For
+example, they may be injected by a CI secret store or set in the R process
+before the call:
+
+```{r secret-environment, eval=FALSE}
+Sys.setenv(
+  API_TOKEN = "value-supplied-at-runtime",
+  DATA_DIR = "data"
+)
+datum_check(quiet = TRUE)
+```
+
+The expansion rules are deliberately strict:
+
+- variable names must match `[A-Za-z_][A-Za-z0-9_]*`;
+- an unset variable is a configuration error, while a variable explicitly set
+  to an empty string is allowed;
+- only `${NAME}` is expanded, so plain `$NAME` remains available to command
+  sources;
+- `$${NAME}` produces the literal text `${NAME}`; and
+- substitution applies to YAML values, not mapping keys.
+
+Quote a placeholder that replaces a whole value when the expanded value must
+remain a string. Placeholders remain in `.data.yaml`, and expanded values are
+not written to `.data.lock.yaml`. This prevents committing the resolved secret,
+but it is not an output-redaction boundary: downstream URLs, commands, and
+errors may still expose it. Prefer purpose-built authentication variables such
+as the Git handler's `GIT_TOKEN` when available, and do not print secrets from
+command sources.
+
+`datur`'s configuration helpers validate the placeholder-bearing document
+before writing it. Retain any literal prefix required by the schema—for
+example, keep `https://` outside the placeholder in an HTTP URL. `datum` then
+validates the expanded value again at runtime.
+
 ## Construct a source
 
 `datum_source()` checks field names and required values against

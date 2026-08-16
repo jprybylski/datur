@@ -85,6 +85,31 @@ datum_dataset_update("example", policy = "update")
 datum_audit()
 ```
 
+## Secrets (datum 1.5.0+)
+
+With `datum` 1.5.0 or newer, any string value in `.data.yaml` can
+reference an environment variable using `${NAME}`. This keeps
+credentials and machine-specific values out of version-controlled
+configuration:
+
+``` yaml
+source:
+  type: http
+  url: "https://api.example.com/export?token=${API_TOKEN}"
+target: "${DATA_DIR}/export.csv"
+```
+
+Set the variables in the environment inherited by `datum` before calling
+`datum_check()` or `datum_run()`. An unset variable is a configuration
+error; an explicitly empty variable is allowed. Use `$${NAME}` for a
+literal `${NAME}` and note that plain `$NAME` is not expanded.
+
+Substituted values are not written to the lockfile. They can still
+appear in a downstream URL, command, or error message, so prefer a
+source handler’s purpose-built authentication environment variable when
+one is available and avoid printing secrets. See
+`vignette("data-yaml", package = "datur")` for the complete behavior.
+
 Changed data is represented as data, including when `datum` uses exit
 status 1 for a `fail` policy:
 
@@ -134,8 +159,8 @@ process$stdout
 ```
 
 Arguments remain separate process tokens and never pass through a shell.
-Sensitive argument and environment values are redacted from public
-process metadata and captured output.
+Sensitive argument values and values supplied through named `env`
+entries are redacted from public process metadata and captured output.
 
 ## Important behavior
 

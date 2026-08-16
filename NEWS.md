@@ -1,3 +1,9 @@
+# datur (development version)
+
+* Documented the `${NAME}` configuration environment references supported by
+  `datum` 1.5.0 and newer, including strict expansion, escaping, and security
+  behavior.
+
 # datur 0.1.1
 
 * Added schema-driven `.data.yaml` helpers: `datum_source()`,
