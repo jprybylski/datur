@@ -292,10 +292,19 @@ Even though its name is `check`, datum always rewrites lockfile timestamps. An
 network or datum's git cache. Run checks in a project where those effects are
 expected.
 
-Do not put credentials directly in URLs or command output. `datur` redacts
-sensitive argument values, sensitive environment values, and URL user info from
-public process results, but the safest design is still to keep secrets in the
-credential mechanisms datum documents.
+With `datum` 1.5.0 or newer, use `${NAME}` references in `.data.yaml` to keep
+secrets and machine-specific values out of version control. Set those variables
+in the environment inherited by `datum`; unset references are configuration
+errors, while `$${NAME}` produces a literal `${NAME}`. See the `.data.yaml`
+vignette for the complete expansion rules.
+
+Environment substitution does not guarantee output redaction. Do not print
+credentials from command sources, and remember that an expanded value may
+appear in a downstream URL or error. `datur` redacts sensitive values passed
+explicitly through `datum_run(env = ...)`, sensitive command arguments, and URL
+user info, but it cannot reliably identify every secret inherited from the R
+process. Prefer purpose-built authentication variables such as `GIT_TOKEN`
+when a source handler provides one.
 
 For the exact reviewed boundary, including statuses and exit-code ambiguities,
 see `docs/datum-cli-contract.md` in the source repository.

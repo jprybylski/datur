@@ -1,19 +1,18 @@
 # `datum` CLI contract for `datur`
 
 **Status:** Phase 0 complete  
-**Reviewed CLI release:** `datum` 1.4.0 (`v1.4.0`)
+**Reviewed CLI release:** `datum` 1.5.0 (`v1.5.0`)
 **Oldest supported CLI release:** `datum` 1.2.1  
 **Protocol designation in `datur`:** implicit JSON protocol v1
 
 This note records the process boundary that `datur` may rely on. It was verified
 against the local [`jprybylski/datum`](https://github.com/jprybylski/datum)
-repository, the `v1.3.0` source tag, and a binary built from that tag with the
-release version linker flag.
+repository, the `v1.3.0` protocol fixtures, and the `v1.5.0` source tag.
 
 ## Compatibility decision
 
 `datum` added machine-readable output in 1.2.1 and is currently released as
-1.4.0. The JSON document does not contain a separate `schema_version` field, so
+1.5.0. The JSON document does not contain a separate `schema_version` field, so
 `datur` will treat the CLI release version as the protocol compatibility gate:
 
 - reject `datum` versions older than 1.2.1;
@@ -102,8 +101,8 @@ flag parser stops processing flags at the subcommand. `datur` must not use
 
 ## Configuration and working directory
 
-`datum` has no configuration search path or configuration environment variable.
-It uses:
+`datum` has no configuration search path or environment variable for selecting
+the configuration file. It uses:
 
 1. `--config PATH`, otherwise `.data.yaml`;
 2. `--lock PATH`, otherwise `.data.lock.yaml`.
@@ -112,6 +111,26 @@ Those paths, file-handler source paths, targets, and command-handler execution
 are resolved relative to the subprocess working directory. `datur` must set the
 child working directory directly and must not change the R process working
 directory.
+
+### Environment references in configuration (datum 1.5.0+)
+
+Any string value parsed from `.data.yaml` may contain a `${NAME}` environment
+reference. `datum` expands references after YAML parsing and before runtime
+schema validation or use. Consequently, YAML-significant characters in a
+substituted value do not change the parsed document's structure.
+
+- Names match `[A-Za-z_][A-Za-z0-9_]*`.
+- An unset name is a configuration error; an explicitly empty value is valid.
+- Only `${NAME}` is expanded. Plain `$NAME` remains unchanged for command
+  sources.
+- `$${NAME}` escapes a literal `${NAME}`.
+- Expansion applies to values, not YAML mapping keys.
+
+The original placeholders remain in `.data.yaml`, and expanded configuration
+values are not copied into the lockfile. Callers must provide variables in the
+child's inherited environment. This feature does not change the JSON protocol
+version and does not raise the package-wide minimum required for projects that
+do not use environment references.
 
 `NO_COLOR` disables color in text mode. `--no-color` is still passed in JSON
 mode for defensive consistency. `--timeout` accepts Go duration syntax, defaults
@@ -238,6 +257,9 @@ the child and propagate normally.
 
 ## Security and privacy hazards
 
+- Environment substitution, available in datum 1.5.0+, keeps resolved values
+  out of `.data.yaml` and the lockfile but is not an output-redaction boundary.
+  An expanded value can still reach a downstream URL, command, or error.
 - HTTP errors can include the configured URL. Embedded URL credentials could
   therefore appear in JSON messages.
 - Command-handler failures include combined child stdout and stderr, which may
@@ -245,10 +267,13 @@ the child and propagate normally.
 - Git credentials are read from environment variables and are not intentionally
   printed, but dependency errors still require redaction before display.
 
-`datur` must redact sensitive argument values, URL user information, sensitive
-environment keys, and captured messages before printing or embedding them in
-conditions. Raw process data should remain accessible only where doing so does
-not violate the package's redaction guarantees.
+`datur` redacts sensitive argument values, URL user information, values passed
+through named sensitive entries in `datum_run(env = ...)`, and matching
+captured messages before printing or embedding them in conditions. It cannot
+reliably classify every value inherited from the parent R environment, so
+users should prefer purpose-built handler authentication variables and avoid
+printing secrets from commands. Raw process data should remain accessible only
+where doing so does not violate the package's redaction guarantees.
 
 ## Known compatibility hazards
 
@@ -264,6 +289,8 @@ not violate the package's redaction guarantees.
 8. Errors are written to stdout, including in JSON mode.
 9. Flags placed after the subcommand are not parsed.
 10. Development builds report `dev` rather than a semantic version.
+11. Configuration environment substitution was added in `datum` 1.5.0; older
+    supported releases treat `${NAME}` as literal text.
 
 ## Fixture provenance
 
