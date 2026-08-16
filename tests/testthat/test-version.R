@@ -29,3 +29,13 @@ test_that("failed version commands raise typed errors", {
   error <- expect_error(datum_version(executable, refresh = TRUE), class = "datur_version_error")
   expect_identical(error$raw_version, "datum v1.3.0\n")
 })
+
+test_that("version boundary validation accepts the supported major", {
+  version <- datur:::validate_datum_version(package_version("1.2.1"), "datum v1.2.1\n")
+  expect_equal(as.character(version), "1.2.1")
+  expect_identical(attr(version, "raw"), "datum v1.2.1\n")
+  expect_error(
+    datur:::validate_datum_version(package_version("2.0.0"), "datum v2.0.0\n"),
+    class = "datur_version_error"
+  )
+})

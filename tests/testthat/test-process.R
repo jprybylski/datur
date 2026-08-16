@@ -63,12 +63,25 @@ test_that("sensitive arguments, environment, output, and URLs are redacted", {
   expect_match(result$stdout, "<redacted>", fixed = TRUE)
 })
 
+test_that("inline sensitive arguments are redacted", {
+  redacted <- datur:::redact_process_inputs(
+    c("--api-key=abc", "--ordinary=value", "--password", "secret"),
+    c(AUTHORIZATION = "bearer-token")
+  )
+  expect_identical(
+    redacted$args,
+    c("--api-key=<redacted>", "--ordinary=value", "--password", "<redacted>")
+  )
+  expect_true(all(c("abc", "secret", "bearer-token") %in% redacted$secrets))
+})
+
 test_that("process printing is concise", {
   executable <- local_fake_datum()
   result <- datum_run("raw", executable = executable)
   output <- testthat::capture_messages(print(result))
   expect_match(output, "status 0")
   expect_false(any(grepl("stdout|stderr", output)))
+  expect_identical(datur:::format_duration(1.25), "1.2s")
 })
 
 test_that("process inputs are validated before launch", {

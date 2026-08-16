@@ -72,3 +72,38 @@ test_that("invalid record fields are rejected", {
                class = "datur_protocol_error")
 })
 
+test_that("protocol rejects malformed document and record shapes", {
+  executable <- local_fake_datum()
+  invalid <- c(
+    "[]",
+    '{}',
+    '{"results":["not an object"]}',
+    '{"results":[{"id":"x","status":"ok","warnings":"warning"}]}',
+    '{"results":[{"id":"x","status":"ok","warnings":[null]}]}'
+  )
+  for (json in invalid) {
+    local_json_output(json)
+    expect_error(
+      datum_check(executable = executable, quiet = TRUE),
+      class = "datur_protocol_error",
+      info = json
+    )
+  }
+})
+
+test_that("protocol distinguishes operational and unexpected exit failures", {
+  executable <- local_fake_datum()
+  local_json_output('{"results":[{"id":"only","status":"error"}]}', 1L)
+  error <- expect_error(
+    datum_check(executable = executable, quiet = TRUE),
+    class = "datur_cli_error"
+  )
+  expect_identical(error$result$status, "error")
+
+  local_json_output('{"results":[{"id":"ok","status":"ok"}]}', 2L)
+  error <- expect_error(
+    datum_check(executable = executable, quiet = TRUE),
+    class = "datur_cli_error"
+  )
+  expect_s3_class(error$result, "datur_check_result")
+})

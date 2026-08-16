@@ -46,3 +46,12 @@ test_that("non-executable files are rejected on Unix", {
   Sys.chmod(path, "0644")
   expect_error(datum_path(path), class = "datur_not_found")
 })
+
+test_that("empty candidates and exhausted PATH discovery are handled", {
+  expect_null(datur:::resolve_candidate("", "test", list(), NULL))
+  state <- get(".datur_state", asNamespace("datur"))
+  state$path <- NULL
+  withr::local_options(datur.datum_path = NULL)
+  withr::local_envvar(c(DATUM_PATH = NA, PATH = withr::local_tempdir()))
+  expect_error(datum_path(refresh = TRUE), class = "datur_not_found")
+})
