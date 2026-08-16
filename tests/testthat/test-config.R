@@ -242,3 +242,66 @@ test_that("config IO initializes missing datasets and creates parent directories
   writeLines(c("version: 1", "datasets: wrong"), mapping)
   expect_error(datur:::read_config_document(mapping), class = "datur_input_error")
 })
+
+test_that("source and config helpers reject malformed entries", {
+  schema <- jsonlite::fromJSON(metadata_fixture_path("schema.json"), simplifyVector = FALSE)
+  raw_types <- jsonlite::fromJSON(metadata_fixture_path("types.json"), simplifyVector = FALSE)$types
+  process <- datur:::new_process_result("datum", character(), 0L, "", "", Sys.time(), 0)
+  specs <- lapply(raw_types, datur:::normalize_type_spec, process = process)
+  names(specs) <- vapply(specs, `[[`, character(1), "type")
+
+  expect_error(datur:::validate_source_object(list(path = "x"), specs),
+               class = "datur_input_error")
+  expect_error(datur:::validate_source_object(list(type = "unknown"), specs),
+               class = "datur_input_error")
+  expect_error(datur:::validate_source_object(list(type = "file", path = "x", extra = "y"), specs),
+               class = "datur_input_error")
+  expect_error(datur:::validate_source_object(list(type = "file", path = "x", path = "y"), specs),
+               class = "datur_input_error")
+  expect_true(datur:::schema_type_matches("anything", "future-type"))
+
+  malformed <- list(datasets = list(list(id = "good"), "not a dataset"))
+  expect_error(datur:::config_dataset_ids(malformed), class = "datur_input_error")
+  expect_null(datur:::config_source_types(list(datasets = list())))
+  expect_identical(
+    datur:::config_source_types(list(datasets = list(list(source = "invalid")))),
+    ""
+  )
+
+  good <- config_dataset("good")
+  no_source <- good
+  no_source$source <- NULL
+  expect_error(datur:::validate_dataset_object(no_source, specs, schema),
+               class = "datur_input_error")
+  bad_id <- good
+  bad_id$id <- "bad id"
+  expect_error(datur:::validate_dataset_object(bad_id, specs, schema),
+               class = "datur_input_error")
+})
+
+test_that("dataset edits cover alternate source forms and target updates", {
+  executable <- local_fake_datum(version = "v1.4.0")
+  local_config_metadata()
+  path <- withr::local_tempfile(fileext = ".yaml")
+  unlink(path)
+
+  datum_dataset_add(
+    "one", "One", "data/one.csv",
+    sources = list(list(type = "file", path = "one.csv")),
+    config = path, executable = executable
+  )
+  datum_dataset_update(
+    "one", target = "data/revised.csv",
+    source = list(type = "file", path = "revised.csv"),
+    config = path, executable = executable
+  )
+  dataset <- yaml::read_yaml(path)$datasets[[1L]]
+  expect_identical(dataset$target, "data/revised.csv")
+  expect_identical(dataset$source$path, "revised.csv")
+  expect_null(dataset[["sources"]])
+
+  expect_error(
+    datum_dataset_remove("missing", delete = FALSE, config = path, executable = executable),
+    class = "datur_input_error"
+  )
+})

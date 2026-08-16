@@ -34,3 +34,19 @@ test_that("empty successful results are distinct from parse failure", {
   expect_identical(nrow(result$records), 0L)
   expect_identical(result$summary[["total"]], 0L)
 })
+
+test_that("printing reports failures, unchanged checks, and deleted targets", {
+  executable <- local_fake_datum()
+  local_json_output('{"results":[{"id":"gone","status":"deleted"}]}')
+  unchanged <- datum_check(executable = executable, quiet = TRUE)
+  output <- capture_messages(print(unchanged))
+  expect_true(any(grepl("no changes", output)))
+  expect_true(any(grepl("skipped", output)))
+
+  local_json_output('{"results":[{"id":"broken","status":"error"}]}', 1L)
+  error <- expect_error(datum_check(executable = executable, quiet = TRUE),
+                        class = "datur_cli_error")
+  output <- capture_messages(print(error$result))
+  expect_true(any(grepl("1 failure", output)))
+  expect_true(any(grepl("error[[:space:]]+broken", output)))
+})
