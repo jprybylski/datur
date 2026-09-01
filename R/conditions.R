@@ -105,3 +105,12 @@ abort_download <- function(message, url = NULL, version = NULL, asset = NULL,
     .envir = parent.frame()
   )
 }
+
+abort_github_timeout <- function(warning, call = NULL) {
+  abort_datur(
+    conditionMessage(warning),
+    "datur_github_timeout",
+    parent = warning,
+    call = call
+  )
+}

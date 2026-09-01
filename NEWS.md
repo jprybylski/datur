@@ -1,3 +1,9 @@
+# datur (development version)
+
+* Fixed `datum_download()` so a GitHub timeout reported by `download.file()` as
+  a warning is recognized even when the subsequent error omits the timeout
+  detail. The function now returns the documented manual-download result.
+
 # datur 0.1.1
 
 * Documented the `${NAME}` configuration environment references supported by
