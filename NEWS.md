@@ -1,4 +1,4 @@
-# datur (development version)
+# datur 0.1.2
 
 * Added full compatibility with `datum` 1.6.0: `datum_init()` creates empty or
   single-dataset configurations, HTTP sources accept structured headers and
