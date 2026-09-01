@@ -3,6 +3,39 @@ test_that("explicit executable paths are normalized", {
   expect_identical(datum_path(executable), normalizePath(executable, winslash = "/"))
 })
 
+test_that("explicit executable paths configure later no-argument calls", {
+  executable <- local_fake_datum()
+  state <- get(".datur_state", asNamespace("datur"))
+  old_path <- state$path
+  old_versions <- state$versions
+  on.exit({
+    state$path <- old_path
+    state$versions <- old_versions
+  }, add = TRUE)
+  state$path <- NULL
+  state$versions <- list()
+  withr::local_options(datur.datum_path = NULL)
+  withr::local_envvar(c(DATUM_PATH = NA, PATH = withr::local_tempdir()))
+  original_option <- getOption("datur.datum_path")
+
+  expected <- datum_path(executable)
+
+  expect_identical(datum_path(), expected)
+  expect_true(datum_available())
+  expect_equal(as.character(datum_version()), "1.3.0")
+  expect_identical(getOption("datur.datum_path"), original_option)
+})
+
+test_that("failed explicit discovery preserves a valid session cache", {
+  executable <- local_fake_datum()
+  expected <- datum_path(executable)
+  missing <- file.path(withr::local_tempdir(), "missing")
+  expect_error(datum_path(missing), class = "datur_not_found")
+  withr::local_options(datur.datum_path = NULL)
+  withr::local_envvar(c(DATUM_PATH = NA, PATH = withr::local_tempdir()))
+  expect_identical(datum_path(), expected)
+})
+
 test_that("discovery honors option then environment", {
   option_executable <- local_fake_datum(name = "datum-option")
   environment_executable <- local_fake_datum(name = "datum-environment")

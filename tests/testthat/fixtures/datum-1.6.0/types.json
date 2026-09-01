@@ -1,0 +1,22 @@
+{
+  "types": [
+    {
+      "type": "file",
+      "description": "Local file source",
+      "fields": [
+        {"name": "type", "required": true, "description": "Must be file."},
+        {"name": "path", "required": true, "description": "Source path."}
+      ]
+    },
+    {
+      "type": "http",
+      "description": "HTTP/HTTPS URL source",
+      "fields": [
+        {"name": "type", "required": true, "description": "Must be http."},
+        {"name": "url", "required": true, "description": "HTTP URL."},
+        {"name": "headers", "required": false, "description": "Request headers."},
+        {"name": "body", "required": false, "description": "Request body."}
+      ]
+    }
+  ]
+}

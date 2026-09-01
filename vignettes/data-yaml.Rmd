@@ -34,6 +34,25 @@ The executable is still the source of truth. These helpers verify that the
 installed release supports configuration metadata, even though checking
 existing projects also works with older supported releases.
 
+## Initialize a project (datum 1.6.0+)
+
+`datum_init()` exposes datum's non-interactive initialization modes. It refuses
+to overwrite an existing configuration:
+
+```{r init, eval=FALSE}
+datum_init(empty = TRUE, wd = project)
+
+datum_init(
+  id = "exchange_rates",
+  type = "file",
+  source = "upstream/rates.csv",
+  target = "data/rates.csv",
+  policy = "update",
+  ignore = TRUE,
+  wd = project
+)
+```
+
 ## Inspect the installed configuration contract
 
 `datum_schema()` parses the JSON Schema returned by `datum schema`:
@@ -128,6 +147,18 @@ fallback <- datum_source(
 )
 ```
 
+Datum 1.6.0 HTTP sources may provide a named header mapping and an optional
+request body. A non-empty body makes datum use POST:
+
+```{r http-request, eval=FALSE}
+private_api <- datum_source(
+  "http",
+  url = "https://api.example.com/export",
+  headers = list(Authorization = "Bearer ${API_TOKEN}"),
+  body = '{"format":"csv"}'
+)
+```
+
 Unknown fields, missing required fields, unavailable source types, and empty
 values fail before `.data.yaml` is touched.
 
@@ -145,6 +176,7 @@ datum_dataset_add(
   target = "data/rates.csv",
   sources = list(primary, fallback),
   policy = "update",
+  ignore = TRUE,
   wd = project
 )
 
@@ -166,7 +198,8 @@ datasets are retained.
 
 Only arguments you supply are changed. Supplying `source` replaces an existing
 `sources` list, and supplying `sources` replaces `source`. Use `policy = NULL`
-to remove a dataset-level override and fall back to the config default.
+or `ignore = NULL` to remove a dataset-level override and fall back to the
+config default.
 
 ```{r update}
 datum_dataset_update(

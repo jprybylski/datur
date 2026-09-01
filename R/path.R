@@ -26,8 +26,11 @@ resolve_candidate <- function(value, source, attempted, call) {
 #' Locate the datum executable
 #'
 #' Resolves `datum` in this order: `executable`, option
-#' `datur.datum_path`, environment variable `DATUM_PATH`, then `PATH`.
-#' Successful automatic `PATH` lookups are cached for the R session.
+#' `datur.datum_path`, environment variable `DATUM_PATH`, a valid session
+#' cache, then `PATH`.
+#' Successful explicit and automatic `PATH` lookups are cached for the R
+#' session. Calling `datum_path(executable = path)` therefore configures later
+#' no-argument calls without changing global R options.
 #'
 #' @param executable Optional explicit executable path.
 #' @param refresh Re-run automatic executable discovery.
@@ -43,7 +46,9 @@ datum_path <- function(executable = NULL, refresh = FALSE) {
 
   if (!is.null(executable)) {
     executable <- validate_string(executable, "executable", call = call)
-    return(resolve_candidate(executable, "argument", attempted, call))
+    resolved <- resolve_candidate(executable, "argument", attempted, call)
+    .datur_state$path <- resolved
+    return(resolved)
   }
 
   option_path <- getOption("datur.datum_path")
@@ -86,4 +91,3 @@ datum_available <- function(executable = NULL) {
     datur_error = function(error) FALSE
   )
 }
-

@@ -14,7 +14,8 @@ datum_dataset_add(
   config = ".data.yaml",
   executable = NULL,
   wd = NULL,
-  timeout = getOption("datur.timeout", 300)
+  timeout = getOption("datur.timeout", 300),
+  ignore = NULL
 )
 }
 \arguments{
@@ -38,6 +39,9 @@ datum_dataset_add(
 \item{wd}{Optional child-process working directory.}
 
 \item{timeout}{Positive finite timeout in seconds.}
+
+\item{ignore}{Optional logical override for datum 1.6.0's VCS ignore
+management.}
 }
 \value{
 Invisibly, the normalized configuration path.

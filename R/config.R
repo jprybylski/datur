@@ -84,11 +84,12 @@ validate_source_object <- function(source, specs, argument = "source", call = NU
   if (length(unknown_fields)) {
     abort_input(argument, paste("Unknown fields:", paste(unknown_fields, collapse = ", ")), call)
   }
-  invalid <- vapply(source, function(value) {
-    !is.character(value) || length(value) != 1L || is.na(value) || !nzchar(value)
+  invalid_strings <- vapply(source, function(value) {
+    is.character(value) &&
+      (length(value) != 1L || is.na(value) || !nzchar(value))
   }, logical(1))
-  if (any(invalid)) {
-    abort_input(argument, "Every source field must be one non-empty character value.", call)
+  if (any(invalid_strings)) {
+    abort_input(argument, "Character source fields must be one non-empty value.", call)
   }
   source
 }
@@ -141,11 +142,17 @@ schema_node_errors <- function(value, node, root, path = "config") {
       errors <- c(errors, schema_node_errors(value[[name]], properties[[name]], root,
                                               paste0(path, "$", name)))
     }
+    unknown <- setdiff(names(value), names(properties))
     if (identical(node$additionalProperties, FALSE)) {
-      unknown <- setdiff(names(value), names(properties))
       if (length(unknown)) {
         errors <- c(errors, sprintf("%s has unknown field(s): %s",
                                     path, paste(unknown, collapse = ", ")))
+      }
+    } else if (is.list(node$additionalProperties)) {
+      for (name in unknown) {
+        errors <- c(errors, schema_node_errors(
+          value[[name]], node$additionalProperties, root, paste0(path, "$", name)
+        ))
       }
     }
   }
@@ -321,7 +328,17 @@ datum_source <- function(type, ..., executable = NULL, wd = NULL,
     abort_input("...", "Every source field must have a unique, non-empty name.", call)
   }
   specs <- datum_types(type, executable = executable, wd = wd, timeout = timeout)
-  validate_source_object(c(list(type = type), fields), specs, call = call)
+  source <- validate_source_object(c(list(type = type), fields), specs, call = call)
+  schema <- datum_schema(executable = executable, wd = wd, timeout = timeout)
+  probe <- list(
+    version = 1L,
+    datasets = list(list(
+      id = "datur_source", desc = "Source validation", source = source,
+      target = "datur-source-validation"
+    ))
+  )
+  validate_config_document(probe, schema, specs, call)
+  source
 }
 
 prepare_config_edit <- function(config, wd, executable, timeout, create, call) {
@@ -343,6 +360,8 @@ prepare_config_edit <- function(config, wd, executable, timeout, create, call) {
 #' @param sources A non-empty list of fallback sources. Supply exactly one of
 #'   `source` and `sources`.
 #' @param policy Optional `"fail"`, `"update"`, or `"log"` override.
+#' @param ignore Optional logical override for datum 1.6.0's VCS ignore
+#'   management.
 #' @param config Configuration path. A missing file is created with version 1.
 #' @inheritParams datum_run
 #' @return Invisibly, the normalized configuration path.
@@ -357,7 +376,8 @@ prepare_config_edit <- function(config, wd, executable, timeout, create, call) {
 datum_dataset_add <- function(id, desc, target, source = NULL, sources = NULL,
                               policy = NULL, config = ".data.yaml",
                               executable = NULL, wd = NULL,
-                              timeout = getOption("datur.timeout", 300)) {
+                              timeout = getOption("datur.timeout", 300),
+                              ignore = NULL) {
   call <- sys.call()
   id <- validate_string(id, "id", call = call)
   desc <- validate_string(desc, "desc", call = call)
@@ -371,6 +391,7 @@ datum_dataset_add <- function(id, desc, target, source = NULL, sources = NULL,
   if (!is.null(source)) dataset$source <- source else dataset$sources <- sources
   dataset$target <- target
   if (!is.null(policy)) dataset$policy <- policy
+  if (!is.null(ignore)) dataset$ignore <- ignore
   existing <- config_dataset_ids(edit$document, call)
   if (id %in% existing) {
     abort_input("id", sprintf("Dataset '%s' already exists; use datum_dataset_update().", id), call)
@@ -383,8 +404,9 @@ datum_dataset_add <- function(id, desc, target, source = NULL, sources = NULL,
 
 #' Update a dataset in `.data.yaml`
 #'
-#' Only supplied fields are changed. Use `policy = NULL` to remove a dataset
-#' policy override. Supplying `source` replaces `sources`, and vice versa.
+#' Only supplied fields are changed. Use `policy = NULL` or `ignore = NULL` to
+#' remove the corresponding override. Supplying `source` replaces `sources`,
+#' and vice versa.
 #'
 #' @inheritParams datum_dataset_add
 #' @return Invisibly, the normalized configuration path.
@@ -396,7 +418,8 @@ datum_dataset_add <- function(id, desc, target, source = NULL, sources = NULL,
 datum_dataset_update <- function(id, desc, target, source, sources, policy,
                                  config = ".data.yaml", executable = NULL,
                                  wd = NULL,
-                                 timeout = getOption("datur.timeout", 300)) {
+                                 timeout = getOption("datur.timeout", 300),
+                                 ignore = NULL) {
   call <- sys.call()
   id <- validate_string(id, "id", call = call)
   timeout <- validate_timeout(timeout, call)
@@ -412,6 +435,10 @@ datum_dataset_update <- function(id, desc, target, source, sources, policy,
   if (!missing(policy)) {
     dataset$policy <- policy
     if (is.null(policy)) dataset$policy <- NULL
+  }
+  if (!missing(ignore)) {
+    dataset$ignore <- ignore
+    if (is.null(ignore)) dataset$ignore <- NULL
   }
   if (!missing(source) && !missing(sources)) {
     abort_input("source", "Supply at most one of 'source' and 'sources'.", call)

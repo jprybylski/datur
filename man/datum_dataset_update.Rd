@@ -14,7 +14,8 @@ datum_dataset_update(
   config = ".data.yaml",
   executable = NULL,
   wd = NULL,
-  timeout = getOption("datur.timeout", 300)
+  timeout = getOption("datur.timeout", 300),
+  ignore = NULL
 )
 }
 \arguments{
@@ -38,13 +39,17 @@ datum_dataset_update(
 \item{wd}{Optional child-process working directory.}
 
 \item{timeout}{Positive finite timeout in seconds.}
+
+\item{ignore}{Optional logical override for datum 1.6.0's VCS ignore
+management.}
 }
 \value{
 Invisibly, the normalized configuration path.
 }
 \description{
-Only supplied fields are changed. Use \code{policy = NULL} to remove a dataset
-policy override. Supplying \code{source} replaces \code{sources}, and vice versa.
+Only supplied fields are changed. Use \code{policy = NULL} or \code{ignore = NULL} to
+remove the corresponding override. Supplying \code{source} replaces \code{sources},
+and vice versa.
 }
 \examples{
 \dontrun{

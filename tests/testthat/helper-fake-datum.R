@@ -6,6 +6,10 @@ metadata_fixture_path <- function(name) {
   testthat::test_path("fixtures", "datum-1.4.0", name)
 }
 
+metadata_1_6_fixture_path <- function(name) {
+  testthat::test_path("fixtures", "datum-1.6.0", name)
+}
+
 write_fake_file <- function(path, lines) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   writeLines(lines, path, useBytes = TRUE)
@@ -49,11 +53,13 @@ local_fake_datum <- function(version = "v1.3.0", directory = NULL,
     "if ('types' %in% args) command <- 'types'",
     "if ('audit' %in% args) command <- 'audit'",
     "if ('delete' %in% args) command <- 'delete'",
+    "if ('init' %in% args) command <- 'init'",
     "output_file <- switch(command,",
     "  schema = Sys.getenv('FAKE_DATUM_SCHEMA_FILE', ''),",
     "  types = Sys.getenv('FAKE_DATUM_TYPES_FILE', ''),",
     "  audit = Sys.getenv('FAKE_DATUM_AUDIT_FILE', ''),",
     "  delete = Sys.getenv('FAKE_DATUM_DELETE_FILE', ''),",
+    "  init = Sys.getenv('FAKE_DATUM_INIT_FILE', ''),",
     "  Sys.getenv('FAKE_DATUM_OUTPUT_FILE', ''))",
     "if (nzchar(output_file)) { cat(readChar(output_file, file.info(output_file)$size, useBytes = TRUE))",
     "} else { cat('{\\n  \"results\": []\\n}\\n') }",
@@ -86,6 +92,16 @@ local_config_metadata <- function(.local_envir = parent.frame()) {
     c(
       FAKE_DATUM_SCHEMA_FILE = normalizePath(metadata_fixture_path("schema.json")),
       FAKE_DATUM_TYPES_FILE = normalizePath(metadata_fixture_path("types.json"))
+    ),
+    .local_envir = .local_envir
+  )
+}
+
+local_config_metadata_1_6 <- function(.local_envir = parent.frame()) {
+  withr::local_envvar(
+    c(
+      FAKE_DATUM_SCHEMA_FILE = normalizePath(metadata_1_6_fixture_path("schema.json")),
+      FAKE_DATUM_TYPES_FILE = normalizePath(metadata_1_6_fixture_path("types.json"))
     ),
     .local_envir = .local_envir
   )

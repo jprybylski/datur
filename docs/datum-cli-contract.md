@@ -1,18 +1,18 @@
 # `datum` CLI contract for `datur`
 
 **Status:** Phase 0 complete  
-**Reviewed CLI release:** `datum` 1.5.0 (`v1.5.0`)
+**Reviewed CLI release:** `datum` 1.6.0 (`v1.6.0`)
 **Oldest supported CLI release:** `datum` 1.2.1  
 **Protocol designation in `datur`:** implicit JSON protocol v1
 
 This note records the process boundary that `datur` may rely on. It was verified
 against the local [`jprybylski/datum`](https://github.com/jprybylski/datum)
-repository, the `v1.3.0` protocol fixtures, and the `v1.5.0` source tag.
+repository, the protocol fixtures, and the `v1.6.0` source tag.
 
 ## Compatibility decision
 
 `datum` added machine-readable output in 1.2.1 and is currently released as
-1.5.0. The JSON document does not contain a separate `schema_version` field, so
+1.6.0. The JSON document does not contain a separate `schema_version` field, so
 `datur` will treat the CLI release version as the protocol compatibility gate:
 
 - reject `datum` versions older than 1.2.1;
@@ -79,6 +79,23 @@ datum --json --no-color types [TYPE ...]
 `datur` uses both documents when constructing and validating configuration
 edits. These commands require datum 1.4.0 but do not raise the package-wide
 minimum needed by older APIs.
+
+### Configuration initialization (datum 1.6.0+)
+
+```text
+datum [--config PATH] init --empty [--policy fail|update|log] [--ignore]
+datum [--config PATH] init --id ID --type http|file --source VALUE \
+  --target PATH [--desc TEXT] [--policy fail|update|log] [--ignore]
+```
+
+Initialization refuses to overwrite an existing configuration. `datur` uses
+only these non-interactive forms; the CLI's terminal prompts are not part of
+the R wrapper contract.
+
+Datum 1.6.0 also adds global and per-dataset `ignore` settings for Datum-owned
+Git/SVN ignore rules. HTTP sources accept a string-valued `headers` mapping and
+an optional `body`; a non-empty body uses POST. The schema-driven R helpers
+validate these additions against the installed executable.
 
 ### Audit and deletion (datum 1.3.0+)
 
