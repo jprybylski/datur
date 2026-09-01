@@ -5,6 +5,7 @@ supported_check_statuses <- c(
   "ok", "updated", "stale", "fail", "warn", "error", "deleted"
 )
 datum_config_api_version <- package_version("1.4.0")
+datum_init_api_version <- package_version("1.6.0")
 supported_audit_statuses <- c("ok", "pending", "deleted", "orphaned")
 
 .datur_state <- new.env(parent = emptyenv())

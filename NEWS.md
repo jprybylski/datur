@@ -1,3 +1,15 @@
+# datur (development version)
+
+* Added full compatibility with `datum` 1.6.0: `datum_init()` creates empty or
+  single-dataset configurations, HTTP sources accept structured headers and
+  request bodies, and dataset helpers manage per-dataset VCS ignore settings.
+* Fixed `datum_path(executable = ...)` to cache the validated path for later
+  `datum_available()`, `datum_path()`, and `datum_version()` calls in the same R
+  session without modifying global options.
+* Fixed `datum_download()` so a GitHub timeout reported by `download.file()` as
+  a warning is recognized even when the subsequent error omits the timeout
+  detail. The function now returns the documented manual-download result.
+
 # datur 0.1.1
 
 * Documented the `${NAME}` configuration environment references supported by

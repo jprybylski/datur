@@ -27,6 +27,7 @@ news:
 reference:
   - title: Manage .data.yaml
     contents:
+      - datum_init
       - datum_source
       - datum_dataset_add
       - datum_dataset_update

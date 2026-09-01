@@ -77,15 +77,22 @@ datum_release_asset <- function(version, platform = datum_platform()) {
 github_download_file <- function(url, destination, timeout) {
   old_options <- options(timeout = max(1L, ceiling(timeout)))
   on.exit(options(old_options), add = TRUE)
-  utils::download.file(
-    url,
-    destination,
-    quiet = TRUE,
-    mode = "wb",
-    headers = c(
-      Accept = "application/vnd.github+json",
-      `User-Agent` = "datur-r-package"
-    )
+  withCallingHandlers(
+    utils::download.file(
+      url,
+      destination,
+      quiet = TRUE,
+      mode = "wb",
+      headers = c(
+        Accept = "application/vnd.github+json",
+        `User-Agent` = "datur-r-package"
+      )
+    ),
+    warning = function(warning) {
+      if (is_github_timeout(warning)) {
+        abort_github_timeout(warning)
+      }
+    }
   )
   destination
 }

@@ -6,6 +6,7 @@
 ^pkgdown-site$
 ^logo-files$
 ^VERSION$
+^codecov\.yml$
 ^changelog\.md$
 ^cran-comments\.md$
 ^datur_[0-9.]+\.tar\.gz$

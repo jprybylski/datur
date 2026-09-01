@@ -85,6 +85,33 @@ datum_dataset_update("example", policy = "update")
 datum_audit()
 ```
 
+With `datum` 1.6.0 or newer, initialize a new project directly from R:
+
+``` r
+datum_init(empty = TRUE)
+
+datum_init(
+  id = "example",
+  type = "http",
+  source = "https://example.com/data.csv",
+  target = "data/example.csv",
+  ignore = TRUE
+)
+```
+
+HTTP sources can also include a request body and named headers. These
+values are validated against the schema embedded in the installed
+executable:
+
+``` r
+datum_source(
+  "http",
+  url = "https://api.example.com/export",
+  headers = list(Authorization = "Bearer ${API_TOKEN}"),
+  body = '{"format":"csv"}'
+)
+```
+
 ## Secrets (datum 1.5.0+)
 
 With `datum` 1.5.0 or newer, any string value in `.data.yaml` can

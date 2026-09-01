@@ -305,3 +305,52 @@ test_that("dataset edits cover alternate source forms and target updates", {
     class = "datur_input_error"
   )
 })
+
+test_that("datum 1.6 supports HTTP request fields and dataset ignore", {
+  executable <- local_fake_datum(version = "v1.6.0")
+  local_config_metadata_1_6()
+  path <- withr::local_tempfile(fileext = ".yaml")
+  unlink(path)
+
+  source <- datum_source(
+    "http", url = "https://example.test/export",
+    headers = list(Authorization = "Bearer ${API_TOKEN}"),
+    body = '{"format":"csv"}', executable = executable
+  )
+  expect_identical(source$headers$Authorization, "Bearer ${API_TOKEN}")
+
+  datum_dataset_add(
+    "private", "Private export", "data/private.csv", source = source,
+    ignore = TRUE, config = path, executable = executable
+  )
+  expect_true(yaml::read_yaml(path)$datasets[[1L]]$ignore)
+
+  datum_dataset_update("private", ignore = FALSE, config = path,
+                       executable = executable)
+  expect_false(yaml::read_yaml(path)$datasets[[1L]]$ignore)
+  datum_dataset_update("private", ignore = NULL, config = path,
+                       executable = executable)
+  expect_null(yaml::read_yaml(path)$datasets[[1L]]$ignore)
+})
+
+test_that("datum 1.6 validates structured HTTP headers through the schema", {
+  executable <- local_fake_datum(version = "v1.6.0")
+  local_config_metadata_1_6()
+  expect_error(
+    datum_source("http", url = "https://example.test", headers = list(X = 1),
+                 executable = executable),
+    class = "datur_input_error"
+  )
+  expect_error(
+    datum_source("http", url = "https://example.test", headers = "X: value",
+                 executable = executable),
+    class = "datur_input_error"
+  )
+
+  local_config_metadata()
+  expect_error(
+    datum_source("http", url = "https://example.test", headers = list(X = "value"),
+                 executable = executable),
+    class = "datur_input_error"
+  )
+})

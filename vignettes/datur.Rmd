@@ -83,9 +83,10 @@ Discovery precedence is explicit and deterministic:
 1. `executable =` on the function call;
 2. `options(datur.datum_path = ...)`;
 3. `DATUM_PATH`;
-4. `Sys.which("datum")`.
+4. a valid path cached by an earlier explicit or automatic lookup;
+5. `Sys.which("datum")`.
 
-Automatic `PATH` discovery and successful version parsing are cached. Use
+Explicit paths, automatic `PATH` discovery, and successful version parsing are cached. Use
 `datum_path(refresh = TRUE)` or `datum_version(refresh = TRUE)` after replacing
 the executable in a long-running R session.
 

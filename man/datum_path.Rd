@@ -16,8 +16,11 @@ A normalized executable path.
 }
 \description{
 Resolves \code{datum} in this order: \code{executable}, option
-\code{datur.datum_path}, environment variable \code{DATUM_PATH}, then \code{PATH}.
-Successful automatic \code{PATH} lookups are cached for the R session.
+\code{datur.datum_path}, environment variable \code{DATUM_PATH}, a valid session
+cache, then \code{PATH}.
+Successful explicit and automatic \code{PATH} lookups are cached for the R
+session. Calling \code{datum_path(executable = path)} therefore configures later
+no-argument calls without changing global R options.
 }
 \examples{
 datum_available()

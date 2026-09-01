@@ -94,6 +94,22 @@ test_that("download helpers handle files, checksums, and destinations", {
   )
 })
 
+test_that("download helper preserves a timeout reported only as a warning", {
+  testthat::local_mocked_bindings(
+    download.file = function(...) {
+      warning("URL: Timeout of 60 seconds was reached")
+      stop("cannot open URL")
+    },
+    .package = "utils"
+  )
+
+  error <- expect_error(
+    github_download_file("https://example.test", withr::local_tempfile(), 60),
+    class = "datur_github_timeout"
+  )
+  expect_match(conditionMessage(error), "Timeout of 60 seconds was reached")
+})
+
 test_that("release archives are extracted and installed atomically", {
   source_directory <- withr::local_tempdir()
   binary <- file.path(source_directory, "datum")
